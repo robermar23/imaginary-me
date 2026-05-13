@@ -7,8 +7,9 @@
  */
 
 import { useSearchParams } from 'next/navigation'
-import { Camera } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { SurveyWizard } from '@/components/survey/SurveyWizard'
+import { PhotoUpload } from '@/components/upload/PhotoUpload'
 
 const SURVEY_STEPS = new Set([
   'survey-entertainment',
@@ -24,28 +25,32 @@ export function CreateFlow() {
   const searchParams = useSearchParams()
   const step = searchParams.get('step') ?? 'survey-entertainment'
 
-  if (SURVEY_STEPS.has(step) || step === 'survey-entertainment') {
+  if (SURVEY_STEPS.has(step)) {
     return <SurveyWizard />
   }
 
   if (step === 'photo-upload') {
-    return <PhotoUploadPlaceholder />
+    return <PhotoUpload />
+  }
+
+  if (step === 'generation-settings') {
+    return <GenerationSettingsPlaceholder />
   }
 
   // Default: show survey
   return <SurveyWizard />
 }
 
-function PhotoUploadPlaceholder() {
+function GenerationSettingsPlaceholder() {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-20 text-center">
       <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center">
-        <Camera className="w-8 h-8 text-muted-foreground" />
+        <Sparkles className="w-8 h-8 text-muted-foreground" />
       </div>
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold text-foreground">Photo Upload</h2>
+        <h2 className="text-xl font-semibold text-foreground">Generation Settings</h2>
         <p className="text-muted-foreground text-sm max-w-xs">
-          Photo upload is coming in Sprint 2. Survey data has been saved to state.
+          AI pipeline and settings coming in Sprint 3.
         </p>
       </div>
     </div>
