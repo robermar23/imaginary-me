@@ -1,127 +1,120 @@
 /**
- * @fileoverview Google Gemini / Imagen 3 provider.
- * Uses the Imagen 3 REST API for text-to-image generation.
- * When a reference photo is available, uses Gemini vision to extract an
- * appearance description and injects it into the Imagen prompt.
+ * @fileoverview Google Gemini image generation provider.
+ * Uses gemini-2.5-flash-image via generateContent with
+ * responseModalities: ['IMAGE'] — works with a standard Gemini API key (billing required).
+ * When a reference photo is provided, it is passed directly as inlineData alongside
+ * the text prompt so the model can render the subject's likeness (same approach as AI Studio).
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { AI_CONFIG } from '@/config/ai-config'
 import type { GenerationRequest, GenerationResult, ImageProvider } from '@/lib/ai/types'
 
-const IMAGEN_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
-
 /**
- * Calls the Gemini vision model to produce a physical appearance description
- * from the reference photo, used for face-consistency injection.
- * @param genAI - GoogleGenerativeAI client.
+ * Encodes a reference image URL (data URL or remote URL) into an inlineData part
+ * suitable for inclusion in a Gemini generateContent request.
  * @param referenceImageUrl - Data URL or remote URL of the reference photo.
- * @returns Appearance description string.
+ * @returns An object with the inlineData part and its mimeType.
  */
-async function describeAppearance(
-  genAI: GoogleGenerativeAI,
+async function encodeReferenceImage(
   referenceImageUrl: string,
-): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: AI_CONFIG.gemini.visionModel })
-
-  let imagePart: { inlineData: { mimeType: string; data: string } }
-
+): Promise<{ inlineData: { mimeType: string; data: string } }> {
   if (referenceImageUrl.startsWith('data:')) {
     const [header, b64] = referenceImageUrl.split(',')
     const mimeType = header.split(':')[1].split(';')[0]
-    imagePart = { inlineData: { mimeType, data: b64 } }
-  } else {
-    const res = await fetch(referenceImageUrl)
-    const buffer = await res.arrayBuffer()
-    const mimeType = res.headers.get('content-type') ?? 'image/jpeg'
-    imagePart = {
-      inlineData: {
-        mimeType,
-        data: Buffer.from(buffer).toString('base64'),
-      },
-    }
+    return { inlineData: { mimeType, data: b64 } }
   }
 
-  const result = await model.generateContent([
-    imagePart,
-    'Describe this person\'s physical appearance in a factual, detailed way for use in an image generation prompt. Include: approximate age range, gender presentation, hair color and style, eye color if visible, skin tone, and any distinctive features. Keep it to 2-3 sentences. Focus only on appearance, not background.',
-  ])
-
-  return result.response.text()
+  const res = await fetch(referenceImageUrl)
+  if (!res.ok) throw new Error(`Failed to fetch reference image: ${res.status}`)
+  const buffer = await res.arrayBuffer()
+  const mimeType = res.headers.get('content-type') ?? 'image/jpeg'
+  return {
+    inlineData: {
+      mimeType,
+      data: Buffer.from(buffer).toString('base64'),
+    },
+  }
 }
 
 /**
- * Calls the Imagen 3 REST API directly.
- * @param apiKey - Google AI API key.
- * @param prompt - Text prompt.
- * @returns Base64-encoded PNG image as a data URL.
- */
-async function callImagen3(apiKey: string, prompt: string): Promise<string> {
-  const url = `${IMAGEN_API_BASE}/${AI_CONFIG.gemini.imageModel}:predict?key=${apiKey}`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: { sampleCount: 1, aspectRatio: '1:1' },
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Imagen 3 API error ${res.status}: ${err}`)
-  }
-
-  const data = (await res.json()) as {
-    predictions?: Array<{ bytesBase64Encoded: string; mimeType: string }>
-  }
-
-  const prediction = data.predictions?.[0]
-  if (!prediction?.bytesBase64Encoded) throw new Error('Imagen 3 returned no image data')
-
-  const mime = prediction.mimeType ?? 'image/png'
-  return `data:${mime};base64,${prediction.bytesBase64Encoded}`
-}
-
-/**
- * Google Imagen 3 provider.
- * Does not support direct image input — uses Gemini vision for appearance
- * description injection instead.
+ * Google Gemini image generation provider.
+ * Uses generateContent with responseModalities: ['IMAGE'] on
+ * gemini-2.5-flash-image. When a reference photo is provided it is passed
+ * directly as inlineData in the same request — this is how AI Studio achieves
+ * subject-faithful results and what this provider replicates.
  */
 export class GeminiProvider implements ImageProvider {
   readonly name = 'gemini' as const
-  readonly supportsImageInput = false // uses description injection instead
+  readonly supportsImageInput = true
   readonly maxImagesPerCall = 1
 
   private readonly genAI: GoogleGenerativeAI
-  private readonly apiKey: string
 
-  /** @param apiKey - Google AI (Gemini / Imagen) API key. */
+  /** @param apiKey - Google AI (Gemini) API key. */
   constructor(apiKey: string) {
-    this.apiKey = apiKey
     this.genAI = new GoogleGenerativeAI(apiKey)
   }
 
   /**
-   * Generates one image via Imagen 3. When a reference photo URL is provided,
-   * prepends an appearance description to the prompt for face consistency.
+   * Generates one image via Gemini native image generation.
+   * When a reference photo URL is provided, it is included as inlineData so
+   * the model renders the subject's likeness directly.
    * @param request - Generation parameters.
    * @returns Raw generation result with base64 data URL.
    */
   async generateImage(request: GenerationRequest): Promise<GenerationResult> {
     const { prompt, referenceImageUrl } = request
-    let finalPrompt = prompt
+
+    const model = this.genAI.getGenerativeModel({
+      model: AI_CONFIG.gemini.imageModel,
+    })
+
+    // Build the parts array — include reference image when available so the
+    // model renders the person's likeness (mirrors what AI Studio does).
+    type Part = { text: string } | { inlineData: { mimeType: string; data: string } }
+    const parts: Part[] = []
 
     if (referenceImageUrl) {
       try {
-        const appearance = await describeAppearance(this.genAI, referenceImageUrl)
-        finalPrompt = `A person who looks like: ${appearance} — depicted as: ${prompt}`
+        const imagePart = await encodeReferenceImage(referenceImageUrl)
+        parts.push(imagePart)
+        parts.push({
+          text: `The person in the reference photo is the subject. Generate: ${prompt}`,
+        })
       } catch {
-        // Continue with original prompt if appearance description fails
+        // Reference image failed to load — fall back to text-only prompt
+        parts.push({ text: prompt })
       }
+    } else {
+      parts.push({ text: prompt })
     }
 
-    const rawUrl = await callImagen3(this.apiKey, finalPrompt)
-    return { rawUrl, providerName: 'gemini' }
+    // responseModalities is not yet in the SDK's GenerationConfig types
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } as object,
+    })
+
+    const responseParts = result.response.candidates?.[0]?.content?.parts ?? []
+    const imagePart = responseParts.find(
+      (p): p is typeof p & { inlineData: { mimeType: string; data: string } } =>
+        'inlineData' in p && p.inlineData != null,
+    )
+
+    if (!imagePart) {
+      const textParts = responseParts
+        .filter((p) => 'text' in p)
+        .map((p) => (p as { text: string }).text)
+      throw new Error(
+        `Gemini returned no image data. Text response: ${textParts.join(' ') || '(none)'}`,
+      )
+    }
+
+    const { mimeType, data } = imagePart.inlineData
+    return {
+      rawUrl: `data:${mimeType ?? 'image/png'};base64,${data}`,
+      providerName: 'gemini',
+    }
   }
 }
