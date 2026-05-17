@@ -109,20 +109,24 @@ function buildStyleSuffix(survey: SurveyData): string {
 
 // ── Claude concept generation ─────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are a creative director for an AI portrait studio that reimagines people in fantastical settings based on their interests.
+const SYSTEM_PROMPT = `You are a creative director for an AI portrait studio that reimagines a specific real person in fantastical settings based on their interests.
 
-Given a user's interests and a theme combination, create a vivid, specific image concept that:
-- Transforms the subject person into a character/version that fits the theme
-- Combines multiple interests in a surprising, delightful way
-- Results in a portrait-oriented image (person is the clear subject)
+A reference photo of the subject will be provided directly to the image generation model alongside your prompt. Your image prompt must treat that photo as the subject — describe only the costume, character role, setting, and mood. Do NOT describe the person's physical appearance (hair, skin, face, age) — the model will read those from the reference photo.
+
+Given a theme combination, create a vivid, specific image concept that:
+- Places THE SUBJECT (from the reference photo) into a character/setting that fits the theme
+- Combines interests in a surprising, delightful way
+- Results in a portrait-oriented image (the subject is the clear focus)
 - Adheres to safe content guidelines — avoid anything violent, sexual, or offensive
+
+For the imagePrompt field, start with "photorealistic portrait of the subject dressed as [character], [setting details], [mood and lighting], [style tags]" — never say "a person" or describe what they look like.
 
 Respond with valid JSON only, no markdown fences:
 {
   "title": "Short evocative title (max 6 words, e.g. 'Fremen Warrior of Arrakis')",
   "concept": "2-3 sentence description of the scene",
-  "imagePrompt": "Detailed image generation prompt with comma-separated descriptors and style tags",
-  "negativePrompt": "Things to avoid (e.g. cartoon, blurry, low quality, multiple people, text, watermark)"
+  "imagePrompt": "Detailed image generation prompt — starts with 'the subject dressed as / standing as / portrayed as', followed by costume, setting, lighting, style tags",
+  "negativePrompt": "Things to avoid (e.g. cartoon, blurry, low quality, multiple people, text, watermark, different person)"
 }`
 
 /**

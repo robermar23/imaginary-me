@@ -164,6 +164,7 @@ export function useGeneration(): UseGenerationReturn {
               imageUrl: event.imageUrl,
               title: event.title,
               prompt: event.prompt,
+              negativePrompt: event.negativePrompt,
               status: 'complete',
             })
             setCompletedCount((n) => n + 1)

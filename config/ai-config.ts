@@ -17,7 +17,7 @@ export const AI_CONFIG = {
 
   gemini: {
     apiKey: process.env.GEMINI_API_KEY ?? '',
-    imageModel: 'imagen-3.0-generate-002' as const,
+    imageModel: 'gemini-2.5-flash-image' as const,
     visionModel: 'gemini-2.0-flash' as const,
   },
 
