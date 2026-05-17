@@ -8,12 +8,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowRight, Sparkles, ShieldCheck, ImageOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
-
-const EXAMPLE_WORLDS = [
-  { label: 'Dune + Japan', gradient: 'from-amber-900/80 via-orange-800/60 to-yellow-900/80' },
-  { label: 'Harry Potter + Iceland + Dark', gradient: 'from-indigo-900/80 via-purple-800/60 to-slate-900/80' },
-  { label: 'Avatar + Teleportation', gradient: 'from-cyan-900/80 via-teal-800/60 to-blue-900/80' },
-]
+import { ExampleGallery } from '@/components/landing/ExampleGallery'
 
 const FADE_UP = {
   hidden: { opacity: 0, y: 24 },
@@ -70,30 +65,8 @@ export function HeroSection() {
         variants={FADE_UP}
         initial="hidden"
         animate="show"
-        className="w-full max-w-sm sm:max-w-lg grid grid-cols-3 gap-2"
-        aria-hidden
       >
-        {EXAMPLE_WORLDS.map(({ label, gradient }, i) => (
-          <div
-            key={label}
-            className={`relative rounded-xl overflow-hidden aspect-[3/4] bg-gradient-to-b ${gradient} border border-border`}
-          >
-            {/* Shimmer overlay to simulate image */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-2">
-              <p className="text-[10px] text-white/80 leading-tight font-medium">
-                {label}
-              </p>
-            </div>
-            {/* Sparkle icon as placeholder */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles
-                className="text-white/20"
-                style={{ width: 32 + i * 8, height: 32 + i * 8 }}
-              />
-            </div>
-          </div>
-        ))}
+        <ExampleGallery />
       </motion.div>
 
       {/* CTA */}
