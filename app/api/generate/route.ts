@@ -234,9 +234,10 @@ export async function POST(request: NextRequest): Promise<Response> {
               const result = await imageProvider.generateImage({
                 prompt: promptToUse,
                 negativePrompt: concept.negativePrompt,
-                referenceImageUrl: imageProvider.supportsImageInput
-                  ? referenceImageUrl
-                  : undefined,
+                // Always pass the reference URL — providers that don't support
+                // direct image input (e.g. Gemini) still use it for appearance
+                // description via vision, so withholding it breaks face reference.
+                referenceImageUrl,
                 size: '1024x1024',
               })
 
@@ -244,6 +245,7 @@ export async function POST(request: NextRequest): Promise<Response> {
               break
             } catch (err) {
               lastError = String(err)
+              console.error(`[generate] image ${i} attempt ${attempt} failed:`, err)
               if (!lastError.includes(CONTENT_POLICY_MARKER)) break // don't retry non-policy errors
             }
           }
@@ -257,6 +259,7 @@ export async function POST(request: NextRequest): Promise<Response> {
                 imageUrl,
                 title: concept.title,
                 prompt: concept.imagePrompt,
+                negativePrompt: concept.negativePrompt,
               }),
             )
           } else {
