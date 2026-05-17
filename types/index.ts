@@ -99,6 +99,7 @@ export interface GeneratedImage {
   readonly imageUrl: string
   readonly title: string
   readonly prompt: string
+  readonly negativePrompt?: string
   readonly provider: ProviderName
   readonly status: GeneratedImageStatus
   readonly error?: string
@@ -137,6 +138,15 @@ export interface GenerateResponse {
   readonly streamId: string
 }
 
+export interface RegenerateRequest {
+  readonly sessionId: string
+  readonly imageId: string
+  readonly imageIndex: number
+  readonly prompt: string
+  readonly negativePrompt: string
+  readonly photoUrls: readonly string[]
+}
+
 export interface CleanupRequest {
   readonly sessionId: string
 }
@@ -156,6 +166,7 @@ export type StreamEvent =
       readonly imageUrl: string
       readonly title: string
       readonly prompt: string
+      readonly negativePrompt: string
     }
   | { readonly type: 'error'; readonly index: number; readonly message: string }
   | { readonly type: 'retry'; readonly index: number; readonly attempt: number }
