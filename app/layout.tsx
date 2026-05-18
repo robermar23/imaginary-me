@@ -4,8 +4,8 @@ import { Toaster } from 'react-hot-toast'
 import './globals.css'
 
 const outfit = Outfit({
-  variable: '--font-outfit',
   subsets: ['latin'],
+  display: 'swap',
 })
 
 const geistMono = Geist_Mono({
@@ -38,7 +38,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${outfit.className} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
