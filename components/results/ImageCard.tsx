@@ -1,14 +1,11 @@
 'use client'
 
-/**
- * @fileoverview ImageCard — displays a single generated image with a hover/tap
- * overlay exposing download, regenerate, and view-prompt actions.
- */
-
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import { AlertCircle } from 'lucide-react'
 import { useSessionStore } from '@/store/session'
+import { useCardTilt } from '@/hooks/useCardTilt'
+import { PolaroidReveal } from '@/components/ui/PolaroidReveal'
 import { ImageActions } from '@/components/results/ImageActions'
 import { PromptViewer } from '@/components/results/PromptViewer'
 import type { GeneratedImage } from '@/types'
@@ -19,7 +16,7 @@ interface Props {
 }
 
 /**
- * Single result image card with overlay actions.
+ * Single result image card with 3-D tilt, Polaroid reveal, and overlay actions.
  * @param image - The GeneratedImage to display.
  * @param index - Position index used for regeneration storage path.
  * @returns ImageCard element.
@@ -32,6 +29,11 @@ export function ImageCard({ image, index }: Props) {
   const sessionId = useSessionStore((s) => s.sessionId)
   const uploadedPhotos = useSessionStore((s) => s.uploadedPhotos)
   const updateImage = useSessionStore((s) => s.updateImage)
+
+  const { tiltRef, tiltStyle, glareStyle, isHovering } = useCardTilt({
+    intensity: 15,
+    disabled: image.status !== 'complete' || regenerating,
+  })
 
   const handleRegenerate = useCallback(async () => {
     if (regenerating || !image.prompt) return
@@ -75,7 +77,12 @@ export function ImageCard({ image, index }: Props) {
             const trimmed = line.trim()
             if (!trimmed.startsWith('data: ')) continue
             try {
-              const event = JSON.parse(trimmed.slice(6)) as { type: string; imageUrl?: string; prompt?: string; negativePrompt?: string }
+              const event = JSON.parse(trimmed.slice(6)) as {
+                type: string
+                imageUrl?: string
+                prompt?: string
+                negativePrompt?: string
+              }
               if (event.type === 'complete' && event.imageUrl) {
                 updateImage(image.id, {
                   imageUrl: event.imageUrl,
@@ -87,7 +94,7 @@ export function ImageCard({ image, index }: Props) {
                 updateImage(image.id, { status: 'error', error: 'Regeneration failed' })
               }
             } catch {
-              // ignore malformed events
+              // ignore malformed SSE events
             }
           }
         }
@@ -99,7 +106,7 @@ export function ImageCard({ image, index }: Props) {
     }
   }, [regenerating, image, index, sessionId, uploadedPhotos, updateImage])
 
-  // ── Pending / generating skeleton ────────────────────────────────────────────
+  // ── Pending / generating skeleton ─────────────────────────────────────────
   if (image.status === 'pending' || image.status === 'generating' || regenerating) {
     return (
       <div className="relative aspect-square rounded-xl overflow-hidden bg-surface border border-border">
@@ -113,7 +120,7 @@ export function ImageCard({ image, index }: Props) {
     )
   }
 
-  // ── Error state ───────────────────────────────────────────────────────────────
+  // ── Error state ───────────────────────────────────────────────────────────
   if (image.status === 'error') {
     return (
       <div className="relative aspect-square rounded-xl overflow-hidden bg-surface border border-red-900/50 flex flex-col items-center justify-center gap-2 p-3">
@@ -137,39 +144,54 @@ export function ImageCard({ image, index }: Props) {
     )
   }
 
-  // ── Complete state ────────────────────────────────────────────────────────────
+  // ── Complete state ────────────────────────────────────────────────────────
   return (
     <>
       <div
+        ref={tiltRef}
         role="button"
         tabIndex={0}
         aria-label={`${image.title || 'Generated image'} — tap to show actions`}
         className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+        style={tiltStyle}
         onMouseEnter={() => setOverlayVisible(true)}
         onMouseLeave={() => setOverlayVisible(false)}
         onClick={() => setOverlayVisible((v) => !v)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOverlayVisible((v) => !v) }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') setOverlayVisible((v) => !v)
+        }}
       >
-        {/* Image */}
-        <Image
-          src={image.imageUrl}
-          alt={image.title || 'Generated image'}
-          fill
-          className="object-cover"
-          unoptimized={image.imageUrl.startsWith('data:')}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        />
+        {/* Specular glare overlay — follows cursor, GPU compositor only */}
+        {isHovering && (
+          <div
+            aria-hidden
+            className="absolute inset-0 z-10 rounded-xl pointer-events-none"
+            style={glareStyle}
+          />
+        )}
+
+        {/* Polaroid development reveal — keyed on imageUrl so it re-fires on regeneration */}
+        <PolaroidReveal key={image.imageUrl}>
+          <Image
+            src={image.imageUrl}
+            alt={image.title || 'Generated image'}
+            fill
+            className="object-cover"
+            unoptimized={image.imageUrl.startsWith('data:')}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+        </PolaroidReveal>
 
         {/* Title bar always visible */}
         {image.title && (
-          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 z-20 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
             <p className="text-xs text-white/90 font-medium truncate">{image.title}</p>
           </div>
         )}
 
         {/* Action overlay — visible on hover (desktop) or tap (mobile) */}
         <div
-          className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity duration-200 ${
+          className={`absolute inset-0 z-30 bg-black/60 flex items-center justify-center transition-opacity duration-200 ${
             overlayVisible ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={(e) => e.stopPropagation()}
