@@ -245,3 +245,12 @@ export const PLACE_QUICK_PICKS: readonly string[] = [
   'New Zealand',
   'Egypt',
 ]
+
+export const SUPERPOWER_QUICK_PICKS: readonly string[] = [
+  'Teleportation',
+  'Flight',
+  'Time travel',
+  'Telepathy',
+  'Invisibility',
+  'Shapeshifting',
+]

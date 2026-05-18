@@ -7,11 +7,11 @@
 import { useSessionStore } from '@/store/session'
 import { InterestTagInput } from '@/components/survey/InterestTagInput'
 import { SingleSelect, type SelectOption } from '@/components/survey/SingleSelect'
-import { QuickPicks } from '@/components/survey/QuickPicks'
 import {
   PLACE_SUGGESTIONS,
   PLACE_QUICK_PICKS,
   SUPERPOWER_SUGGESTIONS,
+  SUPERPOWER_QUICK_PICKS,
 } from '@/lib/data/suggestions'
 import type { TimePeriod } from '@/types'
 
@@ -36,10 +36,6 @@ export function DreamsStep() {
   const setPlaces = useSessionStore((s) => s.setPlaces)
   const setTimePeriod = useSessionStore((s) => s.setTimePeriod)
 
-  function handleSuperpowerPick(value: string) {
-    setSuperpower(value === superpower ? undefined : value)
-  }
-
   function handleTimePeriod(value: TimePeriod) {
     setTimePeriod(value === timePeriod ? undefined : value)
   }
@@ -57,40 +53,16 @@ export function DreamsStep() {
 
       <div className="flex flex-col gap-6">
         {/* Superpower */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
-            <label htmlFor="superpower-input" className="text-sm font-medium text-foreground">
-              Superpower you wish you had
-            </label>
-            {superpower && (
-              <button
-                type="button"
-                onClick={() => setSuperpower(undefined)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <input
-            id="superpower-input"
-            type="text"
-            value={superpower ?? ''}
-            onChange={(e) => setSuperpower(e.target.value || undefined)}
-            maxLength={100}
-            placeholder="e.g. Teleportation, Time travel…"
-            className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring/50 transition-colors"
-          />
-          <div className="mt-1">
-            <p className="text-xs text-muted-foreground mb-1.5">Popular picks:</p>
-            <QuickPicks
-              suggestions={SUPERPOWER_SUGGESTIONS.slice(0, 9)}
-              selected={superpower ? [superpower] : []}
-              onSelect={handleSuperpowerPick}
-              max={1}
-            />
-          </div>
-        </div>
+        <InterestTagInput
+          label="Superpower you wish you had"
+          hint="Pick one or type your own"
+          value={superpower ? [superpower] : []}
+          onChange={(tags) => setSuperpower(tags[0])}
+          suggestions={SUPERPOWER_SUGGESTIONS}
+          quickPicks={SUPERPOWER_QUICK_PICKS}
+          max={1}
+          placeholder="e.g. Teleportation, Time travel…"
+        />
 
         <div className="border-t border-border" />
 
