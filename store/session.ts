@@ -15,6 +15,47 @@ import type {
 } from '@/types'
 import { DEFAULT_SURVEY_DATA } from '@/types'
 
+// ── Remix helpers ─────────────────────────────────────────────────────────────
+// Must stay in sync with the union types in types/index.ts
+
+const ALL_TIME_PERIODS: readonly TimePeriod[] = [
+  'ancient',
+  'medieval',
+  'renaissance',
+  'victorian',
+  'modern',
+  'future',
+]
+
+const ALL_MOODS: readonly Mood[] = [
+  'cinematic',
+  'dreamy',
+  'dark',
+  'vibrant',
+  'gritty',
+  'surreal',
+]
+
+const ALL_ART_STYLES: readonly ArtStyle[] = [
+  'photorealistic',
+  'painted',
+  'anime',
+  'concept_art',
+  'surprise',
+]
+
+/**
+ * Returns a random ArtStyle that differs from the current value.
+ * @param current - The current ArtStyle to exclude from candidates.
+ * @returns A different ArtStyle.
+ */
+function randomArtStyle(current: ArtStyle): ArtStyle {
+  const others = ALL_ART_STYLES.filter((s) => s !== current)
+  return others[Math.floor(Math.random() * others.length)]
+}
+
+// ── Store interface ───────────────────────────────────────────────────────────
+
 interface SessionStore {
   // ── State ────────────────────────────────────────────────────────────────
   sessionId: string
@@ -24,6 +65,7 @@ interface SessionStore {
   imageCount: number
   generatedImages: GeneratedImage[]
   streamId: string | null
+  remixCount: number
 
   // ── Session init ─────────────────────────────────────────────────────────
   /** Must be called in a useEffect on the client to populate sessionId. */
@@ -53,6 +95,9 @@ interface SessionStore {
   updateImage: (id: string, update: Partial<GeneratedImage>) => void
   setGeneratedImages: (images: GeneratedImage[]) => void
 
+  // ── Remix ────────────────────────────────────────────────────────────────
+  remixSurveyData: () => void
+
   // ── Reset ────────────────────────────────────────────────────────────────
   resetSession: () => void
 }
@@ -68,6 +113,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   imageCount: 4,
   generatedImages: [],
   streamId: null,
+  remixCount: 0,
 
   // ── Session init ──────────────────────────────────────────────────────────
   initializeSession: () => {
@@ -120,6 +166,45 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     })),
   setGeneratedImages: (generatedImages) => set({ generatedImages }),
 
+  // ── Remix ─────────────────────────────────────────────────────────────────
+  remixSurveyData: () => {
+    const { surveyData } = get()
+
+    // Build an interest pool from all categories
+    const pool: string[] = [
+      ...surveyData.movies,
+      ...surveyData.books,
+      ...surveyData.tvShows,
+      ...surveyData.places,
+      ...(surveyData.superpower ? [surveyData.superpower] : []),
+    ]
+
+    // Guard: nothing to remix
+    if (pool.length === 0) return
+
+    // Shuffle the pool
+    const shuffled = [...pool].sort(() => Math.random() - 0.5)
+    const picked = shuffled.slice(0, Math.min(5, Math.max(2, shuffled.length)))
+
+    // Distribute: first 2 → movies, next 2 → tvShows, rest → books
+    const remixed: SurveyData = {
+      movies: [...picked.slice(0, 2)],
+      tvShows: [...picked.slice(2, 4)],
+      books: [...picked.slice(4)],
+      places: [...surveyData.places],
+      superpower: surveyData.superpower,
+      timePeriod: ALL_TIME_PERIODS[Math.floor(Math.random() * ALL_TIME_PERIODS.length)],
+      moods: [ALL_MOODS[Math.floor(Math.random() * ALL_MOODS.length)]],
+      artStyle: randomArtStyle(surveyData.artStyle),
+    }
+
+    set((s) => ({
+      surveyData: remixed,
+      generatedImages: [],
+      remixCount: s.remixCount + 1,
+    }))
+  },
+
   // ── Reset ─────────────────────────────────────────────────────────────────
   resetSession: () => {
     if (typeof window !== 'undefined') {
@@ -138,6 +223,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       imageCount: 4,
       generatedImages: [],
       streamId: null,
+      remixCount: 0,
     })
   },
 }))
