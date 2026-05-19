@@ -6,6 +6,8 @@
  * Node.js runtime only (not Edge) — @resvg/resvg-js uses native binaries.
  */
 
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { NextRequest } from 'next/server'
 import satori from 'satori'
 import { Resvg } from '@resvg/resvg-js'
@@ -29,17 +31,15 @@ let fontCache: FontData | null = null
  */
 async function loadFonts(): Promise<FontData> {
   if (fontCache) return fontCache
-  const [regular, bold] = await Promise.all([
-    fetch('https://rsms.me/inter/font-files/Inter-Regular.woff').then((r) => {
-      if (!r.ok) throw new Error(`Font load failed: ${r.status}`)
-      return r.arrayBuffer()
-    }),
-    fetch('https://rsms.me/inter/font-files/Inter-Bold.woff').then((r) => {
-      if (!r.ok) throw new Error(`Font load failed: ${r.status}`)
-      return r.arrayBuffer()
-    }),
+  const fontsDir = join(process.cwd(), 'node_modules', '@fontsource', 'inter', 'files')
+  const [regularBuf, boldBuf] = await Promise.all([
+    readFile(join(fontsDir, 'inter-latin-400-normal.woff2')),
+    readFile(join(fontsDir, 'inter-latin-700-normal.woff2')),
   ])
-  fontCache = { regular, bold }
+  // Buffer may use a shared pool — slice to an owned ArrayBuffer
+  const toArrayBuffer = (buf: Buffer): ArrayBuffer =>
+    buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+  fontCache = { regular: toArrayBuffer(regularBuf), bold: toArrayBuffer(boldBuf) }
   return fontCache
 }
 
