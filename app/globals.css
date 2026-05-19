@@ -185,3 +185,23 @@
   30%  { transform: rotate(-25deg) scale(1.15); }
   100% { transform: rotate(360deg) scale(1); }
 }
+
+/* Scanner overlay — covers the thumbnail during the scan sequence, then fades out */
+@keyframes scannerOverlayFade {
+  0%   { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.scanner-overlay {
+  animation: scannerOverlayFade 2.4s linear forwards;
+}
+
+/* "ANALYZING" text — hidden until beam finishes, then fades in */
+@keyframes analyzingAppear {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.scanner-analyzing-text {
+  opacity: 0;
+  animation: analyzingAppear 0.3s ease 1.5s forwards;
+}

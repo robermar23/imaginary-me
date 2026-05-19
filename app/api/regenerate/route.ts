@@ -115,6 +115,7 @@ export async function POST(request: NextRequest): Promise<Response> {
             title: imageId,
             prompt,
             negativePrompt,
+            backstory: '',  // regeneration reuses existing concept — no new backstory
           }),
         )
         controller.enqueue(encodeEvent({ type: 'done', total: 1, successCount: 1 }))

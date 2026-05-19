@@ -2,12 +2,13 @@
 
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, BookOpen } from 'lucide-react'
 import { useSessionStore } from '@/store/session'
 import { useCardTilt } from '@/hooks/useCardTilt'
 import { PolaroidReveal } from '@/components/ui/PolaroidReveal'
 import { ImageActions } from '@/components/results/ImageActions'
 import { PromptViewer } from '@/components/results/PromptViewer'
+import { BackstoryCard } from '@/components/results/BackstoryCard'
 import type { GeneratedImage } from '@/types'
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
 export function ImageCard({ image, index }: Props) {
   const [overlayVisible, setOverlayVisible] = useState(false)
   const [promptOpen, setPromptOpen] = useState(false)
+  const [backstoryOpen, setBackstoryOpen] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
 
   const sessionId = useSessionStore((s) => s.sessionId)
@@ -182,17 +184,31 @@ export function ImageCard({ image, index }: Props) {
           />
         </PolaroidReveal>
 
-        {/* Title bar always visible */}
+        {/* Title bar always visible — z-40 sits above the action overlay (z-30) */}
         {image.title && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
-            <p className="text-xs text-white/90 font-medium truncate">{image.title}</p>
+          <div className="absolute bottom-0 left-0 right-0 z-40 p-2 bg-gradient-to-t from-black/70 to-transparent flex items-end gap-1">
+            <p className="text-xs text-white/90 font-medium truncate flex-1">{image.title}</p>
+            {image.backstory && (
+              <button
+                type="button"
+                aria-label="Show character backstory"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setBackstoryOpen(true)
+                  setOverlayVisible(false)
+                }}
+                className="flex-shrink-0 p-0.5 rounded hover:text-accent-cyan transition-colors pointer-events-auto"
+              >
+                <BookOpen className="w-3 h-3 text-white/70" aria-hidden />
+              </button>
+            )}
           </div>
         )}
 
         {/* Action overlay — visible on hover (desktop) or tap (mobile) */}
         <div
           className={`absolute inset-0 z-30 bg-black/60 flex items-center justify-center transition-opacity duration-200 ${
-            overlayVisible ? 'opacity-100' : 'opacity-0'
+            overlayVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -205,6 +221,16 @@ export function ImageCard({ image, index }: Props) {
             }}
           />
         </div>
+
+        {/* Backstory flip card — z-40 sits above overlay */}
+        {backstoryOpen && image.backstory && (
+          <BackstoryCard
+            backstory={image.backstory}
+            title={image.title || ''}
+            isOpen={backstoryOpen}
+            onClose={() => setBackstoryOpen(false)}
+          />
+        )}
       </div>
 
       {/* Prompt viewer modal */}

@@ -182,8 +182,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     // Guard: nothing to remix
     if (pool.length === 0) return
 
-    // Shuffle the pool
-    const shuffled = [...pool].sort(() => Math.random() - 0.5)
+    // Shuffle the pool via Fisher–Yates for unbiased results
+    const shuffled = [...pool]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
     const picked = shuffled.slice(0, Math.min(5, Math.max(2, shuffled.length)))
 
     // Distribute: first 2 → movies, next 2 → tvShows, rest → books

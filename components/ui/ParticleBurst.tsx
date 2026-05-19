@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { createPortal } from 'react-dom'
+import type { CSSProperties } from 'react'
 
 type ParticleShape = 'circle' | 'square' | 'streak'
 
@@ -126,7 +127,7 @@ export function ParticleBurst({ origin, onComplete }: Props) {
               ['--dx' as string]: `${p.dx}px`,
               ['--dy' as string]: `${p.dy}px`,
               animation: `particleOut ${p.duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) ${p.delay}ms both`,
-            } as React.CSSProperties
+            } as CSSProperties
           }
           onAnimationEnd={handleAnimationEnd}
         />

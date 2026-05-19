@@ -37,6 +37,7 @@ export type AppStep =
   | 'survey-aesthetic'
   | 'photo-upload'
   | 'generation-settings'
+  | 'concept-vote'
   | 'generating'
   | 'results'
 
@@ -88,7 +89,9 @@ export interface ImageConcept {
   readonly concept: string
   readonly imagePrompt: string
   readonly negativePrompt: string
+  readonly backstory: string
   readonly themeCombo: ThemeCombination
+  readonly seriesEra?: TimePeriod
 }
 
 export type GeneratedImageStatus = 'pending' | 'generating' | 'complete' | 'error'
@@ -103,6 +106,8 @@ export interface GeneratedImage {
   readonly provider: ProviderName
   readonly status: GeneratedImageStatus
   readonly error?: string
+  readonly backstory?: string
+  readonly seriesEra?: TimePeriod
 }
 
 // ── Session ──────────────────────────────────────────────────────────────────
@@ -132,6 +137,8 @@ export interface GenerateRequest {
   readonly surveyData: SurveyData
   readonly photoUrls: readonly string[]
   readonly count: number
+  readonly seriesMode?: boolean
+  readonly precomputedConcepts?: readonly ImageConcept[]
 }
 
 export interface GenerateResponse {
@@ -155,6 +162,24 @@ export interface CleanupResponse {
   readonly deleted: number
 }
 
+export interface ConceptsRequest {
+  readonly sessionId: string
+  readonly surveyData: SurveyData
+  readonly count: number
+}
+
+export interface ConceptsResponse {
+  readonly concepts: readonly ImageConcept[]
+}
+
+export interface CharacterCardRequest {
+  readonly imageUrl: string
+  readonly title: string
+  readonly backstory: string
+  readonly interestTags: readonly string[]
+  readonly artStyle: string
+}
+
 // ── SSE stream events ────────────────────────────────────────────────────────
 
 export type StreamEvent =
@@ -167,6 +192,8 @@ export type StreamEvent =
       readonly title: string
       readonly prompt: string
       readonly negativePrompt: string
+      readonly backstory: string
+      readonly seriesEra?: TimePeriod
     }
   | { readonly type: 'error'; readonly index: number; readonly message: string }
   | { readonly type: 'retry'; readonly index: number; readonly attempt: number }
