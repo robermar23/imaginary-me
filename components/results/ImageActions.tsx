@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { Download, RefreshCw, Info, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { CharacterCardButton } from '@/components/results/CharacterCardButton'
 import type { GeneratedImage } from '@/types'
 
 interface Props {
@@ -79,6 +80,9 @@ export function ImageActions({ image, onRegenerate, onViewPrompt }: Props) {
           <Download className="w-4 h-4" aria-hidden />
         )}
       </button>
+
+      {/* Character Card export */}
+      <CharacterCardButton image={image} />
 
       {/* Regenerate */}
       <button
