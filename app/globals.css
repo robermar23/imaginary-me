@@ -148,3 +148,60 @@
     background-clip: text;
   }
 }
+
+/* ── Sprint 6 animation keyframes ── */
+
+/* Particle burst — fires on Generate button click */
+@keyframes particleOut {
+  0%   { transform: translate(0, 0) scale(1);    opacity: 1;   }
+  15%  { transform: translate(calc(var(--dx) * 0.25), calc(var(--dy) * 0.25)) scale(1.3); opacity: 1; }
+  70%  { transform: translate(calc(var(--dx) * 0.85), calc(var(--dy) * 0.85)) scale(0.7); opacity: 0.85; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0);  opacity: 0;   }
+}
+
+/* Photo upload scanner beam — sweeps top-to-bottom */
+@keyframes scanBeam {
+  from { transform: translateY(0); }
+  to   { transform: translateY(80px); }
+}
+
+/* Blinking cursor for scanner "ANALYZING" text */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Scanner typing cursor pseudo-element */
+.scanner-type::after {
+  content: '|';
+  margin-left: 1px;
+  animation: blink 0.7s step-end infinite;
+  color: inherit;
+}
+
+/* Dice spin on Surprise Me button */
+@keyframes spinDice {
+  0%   { transform: rotate(0deg) scale(1); }
+  30%  { transform: rotate(-25deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Scanner overlay — covers the thumbnail during the scan sequence, then fades out */
+@keyframes scannerOverlayFade {
+  0%   { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.scanner-overlay {
+  animation: scannerOverlayFade 2.4s linear forwards;
+}
+
+/* "ANALYZING" text — hidden until beam finishes, then fades in */
+@keyframes analyzingAppear {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.scanner-analyzing-text {
+  opacity: 0;
+  animation: analyzingAppear 0.3s ease 1.5s forwards;
+}

@@ -63,7 +63,11 @@ function validateRequest(body: unknown): body is GenerateRequest {
   if (typeof b.sessionId !== 'string' || !UUID_RE.test(b.sessionId)) return false
   if (!b.surveyData || typeof b.surveyData !== 'object') return false
   if (!Array.isArray(b.photoUrls)) return false
+  // count validation: relaxed when precomputedConcepts are provided (count = approved subset length)
   if (typeof b.count !== 'number' || b.count < 1 || b.count > AI_CONFIG.generation.maxCount) return false
+  // optional fields — no validation required beyond type check
+  if (b.seriesMode !== undefined && typeof b.seriesMode !== 'boolean') return false
+  if (b.precomputedConcepts !== undefined && !Array.isArray(b.precomputedConcepts)) return false
   return true
 }
 
@@ -178,7 +182,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: 'Invalid request parameters' }, { status: 400 })
   }
 
-  const { sessionId, surveyData, photoUrls, count } = body
+  const { sessionId, surveyData, photoUrls, count, precomputedConcepts, seriesMode } = body
 
   const rateCheck = checkRateLimit(sessionId, count)
   if (!rateCheck.allowed) {
@@ -197,7 +201,19 @@ export async function POST(request: NextRequest): Promise<Response> {
         // ── Step 1: Generate concepts ─────────────────────────────────────
         let concepts: ImageConcept[]
         try {
-          concepts = await promptEngine.generateConcepts(surveyData, count, AI_CONFIG.provider)
+          if (precomputedConcepts && precomputedConcepts.length > 0) {
+            // Vote flow or series mode — skip Claude, use pre-approved concepts
+            concepts = precomputedConcepts as ImageConcept[]
+          } else if (seriesMode) {
+            // Series mode fallback (server computes series) — Phase C implements fully
+            concepts = await promptEngine.generateSeriesConcepts(surveyData, AI_CONFIG.provider)
+            if (concepts.length === 0) {
+              // generateSeriesConcepts stub returns [] — fall back to standard generation
+              concepts = await promptEngine.generateConcepts(surveyData, count, AI_CONFIG.provider)
+            }
+          } else {
+            concepts = await promptEngine.generateConcepts(surveyData, count, AI_CONFIG.provider)
+          }
         } catch (err) {
           controller.enqueue(
             encodeEvent({
@@ -260,6 +276,8 @@ export async function POST(request: NextRequest): Promise<Response> {
                 title: concept.title,
                 prompt: concept.imagePrompt,
                 negativePrompt: concept.negativePrompt,
+                backstory: concept.backstory,
+                seriesEra: concept.seriesEra,
               }),
             )
           } else {

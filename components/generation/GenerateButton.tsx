@@ -1,12 +1,7 @@
 'use client'
 
-/**
- * @fileoverview GenerateButton — primary CTA that triggers image generation.
- * Shows an animated loading state while generation is in progress.
- */
-
 import { Loader2, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { BurstButton } from '@/components/ui/BurstButton'
 
 interface Props {
   onClick: () => void
@@ -16,6 +11,7 @@ interface Props {
 
 /**
  * Styled primary CTA button for the generation step.
+ * Fires a particle burst from the button centre on click, then calls onClick.
  * @param props.onClick - Called when the user clicks Generate.
  * @param props.loading - When true, shows a spinner and disables interaction.
  * @param props.disabled - Extra disabled condition (e.g. no photos uploaded).
@@ -23,9 +19,9 @@ interface Props {
  */
 export function GenerateButton({ onClick, loading, disabled }: Props) {
   return (
-    <Button
+    <BurstButton
       size="lg"
-      onClick={onClick}
+      onBurstClick={onClick}
       disabled={disabled || loading}
       className="w-full gap-2.5 gradient-accent text-white border-0 hover:opacity-90 transition-opacity disabled:opacity-40 text-base font-semibold py-6"
     >
@@ -40,6 +36,6 @@ export function GenerateButton({ onClick, loading, disabled }: Props) {
           Reimagine Me
         </>
       )}
-    </Button>
+    </BurstButton>
   )
 }

@@ -10,6 +10,14 @@ import { useRouter } from 'next/navigation'
 import { useSessionStore } from '@/store/session'
 import type { GenerateRequest, GeneratedImage, StreamEvent } from '@/types'
 
+export interface FetchConceptsOptions {
+  readonly sessionId: string
+  readonly surveyData: import('@/types').SurveyData
+  readonly count: number
+  readonly onSuccess: (concepts: readonly import('@/types').ImageConcept[]) => void
+  readonly onError: (message: string) => void
+}
+
 export interface UseGenerationReturn {
   /** True while the SSE stream is open. */
   readonly generating: boolean
@@ -19,6 +27,8 @@ export interface UseGenerationReturn {
   readonly currentTitle: string | null
   /** Top-level error (e.g. request rejected, network failure). */
   readonly error: string | null
+  /** True while /api/concepts is fetching (concept vote pre-fetch). */
+  readonly fetchingConcepts: boolean
   /**
    * Starts the generation pipeline.
    * Navigates to `/create?step=generating`, opens the SSE stream, and updates
@@ -26,6 +36,12 @@ export interface UseGenerationReturn {
    * @param count - Number of images to generate.
    */
   startGeneration(count: number): Promise<void>
+  /**
+   * Fetches concepts from /api/concepts without generating images.
+   * Stub — fully implemented in Phase D.
+   * @param opts - Session, survey, count, and callbacks.
+   */
+  fetchConcepts(opts: FetchConceptsOptions): Promise<void>
 }
 
 /**
@@ -76,6 +92,7 @@ export function useGeneration(): UseGenerationReturn {
   const [completedCount, setCompletedCount] = useState(0)
   const [currentTitle, setCurrentTitle] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fetchingConcepts, setFetchingConcepts] = useState(false)
 
   const sessionId = useSessionStore((s) => s.sessionId)
   const surveyData = useSessionStore((s) => s.surveyData)
@@ -166,6 +183,8 @@ export function useGeneration(): UseGenerationReturn {
               prompt: event.prompt,
               negativePrompt: event.negativePrompt,
               status: 'complete',
+              backstory: event.backstory,
+              seriesEra: event.seriesEra,
             })
             setCompletedCount((n) => n + 1)
             setCurrentTitle(null)
@@ -194,5 +213,17 @@ export function useGeneration(): UseGenerationReturn {
     [generating, router, sessionId, surveyData, uploadedPhotos, startGenerationStore, setGeneratedImages, updateImage],
   )
 
-  return { generating, completedCount, currentTitle, error, startGeneration }
+  // fetchConcepts stub — fully implemented in Phase D
+  const fetchConcepts = useCallback(async (opts: FetchConceptsOptions): Promise<void> => {
+    setFetchingConcepts(true)
+    try {
+      // Phase D: POST /api/concepts, parse response, call opts.onSuccess
+      console.log('[fetchConcepts] stub — Phase D implements this', opts.sessionId)
+      opts.onError('Concept fetch not yet implemented')
+    } finally {
+      setFetchingConcepts(false)
+    }
+  }, [])
+
+  return { generating, completedCount, currentTitle, error, fetchingConcepts, startGeneration, fetchConcepts }
 }
