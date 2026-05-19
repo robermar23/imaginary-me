@@ -12,6 +12,10 @@ const SECURITY_HEADERS = [
 ]
 
 const nextConfig: NextConfig = {
+  // Native-binary packages must be excluded from the Turbopack/webpack server bundle
+  // so Node.js can load the platform-specific .node file at runtime.
+  serverExternalPackages: ['@resvg/resvg-js'],
+
   images: {
     remotePatterns: [
       // Vercel Blob CDN — generated images and uploaded photos
